@@ -1,9 +1,6 @@
 package com.senac.votesys.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,5 +17,7 @@ public class Token {
 
     private String token;
 
-    private String usuario;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "usuarios_id", nullable = false)
+    private Usuarios usuario;
 }

@@ -3,8 +3,11 @@ package com.senac.votesys.services;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.senac.votesys.dto.LoginRequest;
 import com.senac.votesys.model.Token;
+import com.senac.votesys.model.Usuarios;
 import com.senac.votesys.repository.TokenRepository;
+import com.senac.votesys.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,12 +30,19 @@ public class TokenService {
     @Autowired
     TokenRepository tokenRepository;
 
-    public String gerarToken(String usuario, String senha) {
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
+    public String gerarToken(LoginRequest loginRequest) {
+
+        var usuario = usuarioRepository.findByEmail(loginRequest.email()).orElse(null);
+
         Algorithm algorithm = Algorithm.HMAC256(secret);
 
         String token = JWT.create()
                 .withIssuer(emissor)
-                .withSubject(usuario)
+                .withSubject(usuario.getEmail())
                 .withExpiresAt(this.gerarDataExpiracao())
                 .sign(algorithm);
 
@@ -41,7 +51,7 @@ public class TokenService {
         return token;
     }
 
-    public String validarToken(String token) {
+    public Usuarios validarToken(String token) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         JWTVerifier verifier = JWT.require(algorithm)
                 .withIssuer(emissor)
