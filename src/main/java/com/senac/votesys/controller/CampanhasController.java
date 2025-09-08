@@ -18,7 +18,7 @@ public class CampanhasController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Listar Campanha", description = "Método reponsável por consultar campanhas por ID")
-    public ResponseEntity<Campanhas> consultaPorId(@PathVariable long id){
+    public ResponseEntity<Campanhas> listarPorId(@PathVariable long id){
         var campanha = campanhasRepository.findById(id)
                 .orElse(null);
         if (campanha == null){
@@ -30,7 +30,7 @@ public class CampanhasController {
 
     @GetMapping
     @Operation(summary = "Listar Todas Campanhas", description = "Método responsável por consultar todas as campanhas")
-    public ResponseEntity<?> consultarTodos(){
+    public ResponseEntity<?> listarTodos(){
 
         return ResponseEntity.ok(campanhasRepository.findAll());
     }
@@ -46,11 +46,13 @@ public class CampanhasController {
             return ResponseEntity.ok(campanhaResponse);
 
     }catch (Exception e){
-        return ResponseEntity.badRequest().build();}
+        return ResponseEntity.badRequest().build();
+
+        }
     }
 
-    @PutMapping("/atualizar/{id}")
-    @Operation(summary = "Atualiza Campanha", description = "Método reposável em atualizar daodos de uma campanha")
+    @PutMapping("{id}")
+    @Operation(summary = "Atualiza Campanha", description = "Método reposável em atualizar dados de uma campanha")
     public ResponseEntity<?> atualizarCampanha(@PathVariable long id, @RequestBody Campanhas campanha){
 
         if (!campanhasRepository.existsById(id)){
@@ -61,6 +63,25 @@ public class CampanhasController {
             var campanhaResponse = campanhasRepository.save(campanha);
             return ResponseEntity.ok(campanhaResponse);
         }catch (Exception e){
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Excluir Campanha", description = "Método reposável em excluir uma campanha")
+    public ResponseEntity<?> excluirCampanha(@PathVariable long id){
+
+        if(!campanhasRepository.existsById(id)){
+            return ResponseEntity.notFound().build();
+        }
+
+        try{
+            campanhasRepository.deleteById(id);
+
+            return ResponseEntity.noContent().build();
+
+        }catch (Exception e){
+
             return ResponseEntity.badRequest().build();
         }
     }

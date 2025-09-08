@@ -1,5 +1,10 @@
 package com.senac.votesys.dto;
 
-public record CampanhaRequestDTO(String email,
-                                 String senha) {
+import java.time.LocalDateTime;
+
+public record CampanhaRequestDTO(String titulo,
+                                 String descricao,
+                                 LocalDateTime dataInicio,
+                                 LocalDateTime dataFim,
+                                 boolean ativo) {
 }
