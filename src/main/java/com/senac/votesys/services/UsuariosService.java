@@ -1,7 +1,7 @@
 package com.senac.votesys.services;
 
-import com.senac.votesys.dto.LoginRequest;
-import com.senac.votesys.repository.UsuarioRepository;
+import com.senac.votesys.dto.LoginRequestDTO;
+import com.senac.votesys.repository.UsuariosRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 public class UsuariosService {
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private UsuariosRepository usuarioRepository;
 
-    public boolean validarSenha(LoginRequest loginRequest) {
+    public boolean validarSenha(LoginRequestDTO loginRequest) {
 
         return usuarioRepository.existsUsuarioByEmailContainingAndSenha(loginRequest.email(),loginRequest.senha());
     }

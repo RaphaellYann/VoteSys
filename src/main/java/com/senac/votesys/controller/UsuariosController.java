@@ -1,7 +1,7 @@
 package com.senac.votesys.controller;
 
 import com.senac.votesys.model.Usuarios;
-import com.senac.votesys.repository.UsuarioRepository;
+import com.senac.votesys.repository.UsuariosRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,13 +11,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/usuarios")
-@Tag(name = "Controlador de Usuários", description = "Camada responsavel por controlar os registros de usuários")
+@Tag(name = "Controlador de Usuários", description = "Camada responsável por controlar os registros de usuários")
 public class UsuariosController {
 
     @Autowired
-    private UsuarioRepository usuariosRepository;
+    private UsuariosRepository usuariosRepository;
 
     @GetMapping("/{id}")
+    @Operation(summary = "Listar Usuário", description = "Método resposavel por listar usuário por ID")
     public ResponseEntity<Usuarios> consultaPorId(@PathVariable Long id) {
         var usuario = usuariosRepository.findById(id)
                 .orElse(null);
@@ -28,14 +29,15 @@ public class UsuariosController {
     }
 
     @GetMapping
-    @Operation(summary = "usuarios", description = "Método resposavel por calcular os custos da folha de pagamento e apos faz os lançamentos contabeis na tabela...")
+    @Operation(summary = "Listar todos Usuários", description = "Método resposavel por listar os usuários")
     public ResponseEntity<?> consultarTodos() {
+
         return ResponseEntity.ok(usuariosRepository.findAll());
     }
 
     @PostMapping
-    @Operation(summary = "Salvar Usuario", description = "Método responsável em criar usuários")
-    public ResponseEntity<?> salvarUsuario(@RequestBody Usuarios usuario){
+    @Operation(summary = "Criar Usuario", description = "Método responsável em criar um novo usuário")
+    public ResponseEntity<?> criarUsuario(@RequestBody Usuarios usuario){
 
         try {
 

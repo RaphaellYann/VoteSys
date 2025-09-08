@@ -3,11 +3,11 @@ package com.senac.votesys.services;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.senac.votesys.dto.LoginRequest;
+import com.senac.votesys.dto.LoginRequestDTO;
 import com.senac.votesys.model.Token;
 import com.senac.votesys.model.Usuarios;
 import com.senac.votesys.repository.TokenRepository;
-import com.senac.votesys.repository.UsuarioRepository;
+import com.senac.votesys.repository.UsuariosRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -32,9 +32,9 @@ public class TokenService {
 
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private UsuariosRepository usuarioRepository;
 
-    public String gerarToken(LoginRequest loginRequest) {
+    public String gerarToken(LoginRequestDTO loginRequest) {
 
         var usuario = usuarioRepository.findByEmail(loginRequest.email()).orElse(null);
 
