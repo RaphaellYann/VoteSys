@@ -51,7 +51,7 @@ public class CampanhasController {
         }
     }
 
-    @PutMapping("{id}")
+    @PutMapping("/{id}")
     @Operation(summary = "Atualiza Campanha", description = "Método reposável em atualizar dados de uma campanha")
     public ResponseEntity<?> atualizarCampanha(@PathVariable long id, @RequestBody Campanhas campanha){
 
@@ -60,9 +60,12 @@ public class CampanhasController {
         }
         try{
             campanha.setId(id);
+
             var campanhaResponse = campanhasRepository.save(campanha);
+
             return ResponseEntity.ok(campanhaResponse);
         }catch (Exception e){
+
             return ResponseEntity.badRequest().build();
         }
     }

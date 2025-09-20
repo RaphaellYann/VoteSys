@@ -17,7 +17,7 @@ public class OpcaoVotoController {
     private OpcaoVotoRepository opcaoVotoRepository;
 
     @GetMapping("/{id}")
-    @Operation(summary = "Listar Opcão Voto", description = "Método resposável por contular opcão votos por ID")
+    @Operation(summary = "Listar Opcão Voto", description = "Método resposável por consultar opcão votos por ID")
     public ResponseEntity<OpcaoVoto> consultarOpcaoVotoPorId(@PathVariable Long id){
         var opcaoVoto = opcaoVotoRepository.findById(id)
                 .orElse(null);

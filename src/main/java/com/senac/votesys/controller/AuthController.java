@@ -1,6 +1,7 @@
 package com.senac.votesys.controller;
 
 import com.senac.votesys.dto.LoginRequestDTO;
+import com.senac.votesys.dto.LoginResponseDTO;
 import com.senac.votesys.services.TokenService;
 import com.senac.votesys.services.UsuariosService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +34,7 @@ public class AuthController {
 
         var token = tokenService.gerarToken(request);
 
-        return ResponseEntity.ok(token);
+        return ResponseEntity.ok(new LoginResponseDTO(token));
     }
 
 }
