@@ -1,6 +1,10 @@
 package com.senac.votesys.controller;
 
+import com.senac.votesys.dto.OpcaoVotoRequestDTO;
+import com.senac.votesys.dto.OpcaoVotoResponseDTO;
+import com.senac.votesys.model.Campanhas;
 import com.senac.votesys.model.OpcaoVoto;
+import com.senac.votesys.repository.CampanhasRepository;
 import com.senac.votesys.repository.OpcaoVotoRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,43 +12,63 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/opcaoVoto")
-@Tag(name = "Contador de Votos", description = "Camada resposável por controle do contador de votos")
+@Tag(name = "Opções de Voto", description = "Controlador para gerenciar as opções de voto")
 public class OpcaoVotoController {
 
     @Autowired
     private OpcaoVotoRepository opcaoVotoRepository;
 
+    @Autowired
+    private CampanhasRepository campanhasRepository;
+
     @GetMapping("/{id}")
-    @Operation(summary = "Listar Opcão Voto", description = "Método resposável por consultar opcão votos por ID")
-    public ResponseEntity<OpcaoVoto> consultarOpcaoVotoPorId(@PathVariable Long id){
-        var opcaoVoto = opcaoVotoRepository.findById(id)
-                .orElse(null);
-        if(opcaoVoto == null){
+    @Operation(summary = "Consultar Opção de Voto", description = "Consultar opção de voto por ID")
+    public ResponseEntity<OpcaoVotoResponseDTO> consultarPorId(@PathVariable long id) {
+        var opcao = opcaoVotoRepository.findById(id).orElse(null);
+        if (opcao == null) {
             return ResponseEntity.notFound().build();
         }
-
-        return ResponseEntity.ok(opcaoVoto);
+        return ResponseEntity.ok(OpcaoVotoResponseDTO.fromEntity(opcao));
     }
 
     @GetMapping
-    @Operation(summary = "Listar Todos Opcão Voto", description = "Método resposável por contular todos opcão votos")
-    public ResponseEntity<?> consultarOpcaoVotos(){
+    @Operation(summary = "Listar Todas Opções de Voto", description = "Consultar todas as opções de voto")
+    public ResponseEntity<List<OpcaoVotoResponseDTO>> listarTodos() {
+        var lista = opcaoVotoRepository.findAll().stream()
+                .map(OpcaoVotoResponseDTO::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(lista);
+    }
 
-        return  ResponseEntity.ok(opcaoVotoRepository.findAll());
-
+    @GetMapping("/por-campanha/{campanhaId}")
+    @Operation(summary = "Listar Opções por Campanha", description = "Consultar todas as opções de voto de uma campanha")
+    public ResponseEntity<List<OpcaoVotoResponseDTO>> listarPorCampanha(@PathVariable long campanhaId) {
+        var lista = opcaoVotoRepository.findByCampanhaId(campanhaId).stream()
+                .map(OpcaoVotoResponseDTO::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(lista);
     }
 
     @PostMapping
-    @Operation(summary = "Criar Opcão Voto", description = "Método resposável por criar opção voto")
-    public ResponseEntity<?> criarOpcaoVoto(@RequestBody OpcaoVoto opcaoVoto) {
-
+    @Operation(summary = "Criar Opção de Voto", description = "Cadastrar uma nova opção de voto")
+    public ResponseEntity<?> criarOpcaoVoto(@RequestBody OpcaoVotoRequestDTO dto) {
         try {
+            var campanha = campanhasRepository.findById(dto.campanhaId()).orElse(null);
+            if (campanha == null) {
+                return ResponseEntity.notFound().build();
+            }
 
-            var opcaoVotoResponse = opcaoVotoRepository.save(opcaoVoto);
+            var novaOpcao = new OpcaoVoto();
+            novaOpcao.setNome(dto.nome());
+            novaOpcao.setCampanha(campanha);
 
-            return ResponseEntity.ok(opcaoVotoResponse);
+            var opcaoSalva = opcaoVotoRepository.save(novaOpcao);
+            return ResponseEntity.ok(OpcaoVotoResponseDTO.fromEntity(opcaoSalva));
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -52,41 +76,46 @@ public class OpcaoVotoController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar Opção Voto", description = "Método resposável por atualizar opção voto")
-    public ResponseEntity<?> atualizarOpcaoVoto(@PathVariable Long id, @RequestBody OpcaoVoto opcaoVoto){
-
-        if(!opcaoVotoRepository.existsById(id)){
+    @Operation(summary = "Atualizar Opção de Voto", description = "Atualizar dados de uma opção de voto existente")
+    public ResponseEntity<?> atualizarOpcaoVoto(@PathVariable long id, @RequestBody OpcaoVotoRequestDTO dto) {
+        if (!opcaoVotoRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
 
-        try{
-            opcaoVoto.setId(id);
-            var opcaoVotoResponse = opcaoVotoRepository.save(opcaoVoto);
-            return ResponseEntity.ok(opcaoVotoResponse);
+        try {
+            var campanha = campanhasRepository.findById(dto.campanhaId()).orElse(null);
+            if (campanha == null) {
+                return ResponseEntity.notFound().build();
+            }
 
-        }catch(Exception e){
+            var opcao = opcaoVotoRepository.findById(id).orElse(null);
+            if (opcao == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            opcao.setNome(dto.nome());
+            opcao.setCampanha(campanha);
+
+            var opcaoAtualizada = opcaoVotoRepository.save(opcao);
+            return ResponseEntity.ok(OpcaoVotoResponseDTO.fromEntity(opcaoAtualizada));
+
+        } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
-
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir Opcão Voto", description = "Método reposável em excluir uma Opção Voto")
-    public ResponseEntity<?> excluirOpcaoVoto (@PathVariable Long id){
-
-        if(!opcaoVotoRepository.existsById(id)){
-
+    @Operation(summary = "Excluir Opção de Voto", description = "Excluir uma opção de voto")
+    public ResponseEntity<?> excluirOpcaoVoto(@PathVariable long id) {
+        if (!opcaoVotoRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
 
-        try{
+        try {
             opcaoVotoRepository.deleteById(id);
-
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-
             return ResponseEntity.badRequest().build();
         }
-
     }
 }

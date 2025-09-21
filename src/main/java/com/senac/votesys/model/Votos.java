@@ -20,7 +20,7 @@ public class Votos {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "votos_id")
+    @JoinColumn(name = "campanha_id")
     private Campanhas campanha;
 
     @ManyToOne(fetch = FetchType.LAZY)

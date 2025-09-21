@@ -25,14 +25,16 @@ public class SecutiryConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests( auth ->
                                 auth
-                                        .requestMatchers("/**").permitAll()
+                                       // .requestMatchers("/**").permitAll()
                                         .requestMatchers("/auth/login").permitAll()
                                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-resources/**").permitAll()
                                         .requestMatchers("/usuarios").hasRole("ADMIN")
-                                        .requestMatchers("/campanhas").permitAll()
+                                        .requestMatchers("/campanhas/").permitAll()
+                                        .requestMatchers("/opcaoVoto/").permitAll()
+                                        .requestMatchers("/votos/").permitAll()
                                         .anyRequest().authenticated()
 
                 )
