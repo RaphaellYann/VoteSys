@@ -25,7 +25,7 @@ public class SecutiryConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests( auth ->
                                 auth
-                                       // .requestMatchers("/**").permitAll()
+                                        .requestMatchers("/**").permitAll()
                                         .requestMatchers("/auth/login").permitAll()
                                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()

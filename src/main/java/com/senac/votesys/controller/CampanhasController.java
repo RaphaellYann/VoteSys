@@ -1,7 +1,7 @@
 package com.senac.votesys.controller;
 
-import com.senac.votesys.model.Campanhas;
-import com.senac.votesys.repository.CampanhasRepository;
+import com.senac.votesys.dto.CampanhasRequestDTO;
+import com.senac.votesys.services.CampanhasService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,83 +10,63 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/campanhas")
-@Tag(name = "Controle de Campanhas", description = "Camada responsável por controlar os regisros de campanhas")
+@Tag(name = "Controle de Campanhas", description = "Camada responsável por controlar os registros de campanhas")
 public class CampanhasController {
 
     @Autowired
-    private CampanhasRepository campanhasRepository;
+    private CampanhasService campanhasService;
 
     @GetMapping("/{id}")
-    @Operation(summary = "Listar Campanha", description = "Método reponsável por consultar campanhas por ID")
-    public ResponseEntity<Campanhas> listarPorId(@PathVariable long id){
-        var campanha = campanhasRepository.findById(id)
-                .orElse(null);
-        if (campanha == null){
+    @Operation(summary = "Listar Campanha", description = "Consulta campanha por ID")
+    public ResponseEntity<?> listarPorId(@PathVariable long id) {
+        try {
+            var campanha = campanhasService.listarPorId(id);
+            return ResponseEntity.ok(campanha);
+        } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(campanha);
-
     }
 
     @GetMapping
-    @Operation(summary = "Listar Todas Campanhas", description = "Método responsável por consultar todas as campanhas")
-    public ResponseEntity<?> listarTodos(){
-
-        return ResponseEntity.ok(campanhasRepository.findAll());
+    @Operation(summary = "Listar Todas Campanhas", description = "Consulta todas as campanhas")
+    public ResponseEntity<?> listarTodos() {
+        return ResponseEntity.ok(campanhasService.listarTodos());
     }
 
     @PostMapping
-    @Operation(summary = "Criar Campanha", description = "Método Reponsável em criar uma nova campanha")
-    public ResponseEntity<?> criarCampanha(@RequestBody Campanhas campanha) {
-
-        try{
-
-            var campanhaResponse = campanhasRepository.save(campanha);
-
-            return ResponseEntity.ok(campanhaResponse);
-
-    }catch (Exception e){
-        return ResponseEntity.badRequest().build();
-
+    @Operation(summary = "Criar Campanha", description = "Cria uma nova campanha")
+    public ResponseEntity<?> criarCampanha(@RequestBody CampanhasRequestDTO dto) {
+        try {
+            var campanha = campanhasService.criarCampanha(dto);
+            return ResponseEntity.ok(campanha);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualiza Campanha", description = "Método reposável em atualizar dados de uma campanha")
-    public ResponseEntity<?> atualizarCampanha(@PathVariable long id, @RequestBody Campanhas campanha){
-
-        if (!campanhasRepository.existsById(id)){
+    @Operation(summary = "Atualizar Campanha", description = "Atualiza dados de uma campanha")
+    public ResponseEntity<?> atualizarCampanha(@PathVariable long id, @RequestBody CampanhasRequestDTO dto) {
+        try {
+            var campanha = campanhasService.atualizarCampanha(id, dto);
+            return ResponseEntity.ok(campanha);
+        } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
-        }
-        try{
-            campanha.setId(id);
-
-            var campanhaResponse = campanhasRepository.save(campanha);
-
-            return ResponseEntity.ok(campanhaResponse);
-        }catch (Exception e){
-
+        } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir Campanha", description = "Método reposável em excluir uma campanha")
-    public ResponseEntity<?> excluirCampanha(@PathVariable long id){
-
-        if(!campanhasRepository.existsById(id)){
-            return ResponseEntity.notFound().build();
-        }
-
-        try{
-            campanhasRepository.deleteById(id);
-
+    @Operation(summary = "Excluir Campanha", description = "Exclui uma campanha")
+    public ResponseEntity<?> excluirCampanha(@PathVariable long id) {
+        try {
+            campanhasService.excluirCampanha(id);
             return ResponseEntity.noContent().build();
-
-        }catch (Exception e){
-
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
-
 }
