@@ -1,4 +1,4 @@
-package com.senac.votesys.services;
+package com.senac.votesys.service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;

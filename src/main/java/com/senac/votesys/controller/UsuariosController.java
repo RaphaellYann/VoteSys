@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +23,9 @@ public class UsuariosController {
     public ResponseEntity<Usuarios> consultaPorId(@PathVariable Long id) {
         var usuario = usuariosRepository.findById(id)
                 .orElse(null);
+
+        SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }

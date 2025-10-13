@@ -2,8 +2,8 @@ package com.senac.votesys.controller;
 
 import com.senac.votesys.dto.LoginRequestDTO;
 import com.senac.votesys.dto.LoginResponseDTO;
-import com.senac.votesys.services.TokenService;
-import com.senac.votesys.services.UsuariosService;
+import com.senac.votesys.service.TokenService;
+import com.senac.votesys.service.UsuariosService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;

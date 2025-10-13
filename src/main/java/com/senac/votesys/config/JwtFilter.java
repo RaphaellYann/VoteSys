@@ -1,6 +1,6 @@
 package com.senac.votesys.config;
 
-import com.senac.votesys.services.TokenService;
+import com.senac.votesys.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +30,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 || path.startsWith("/swagger-resources")    
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/webjars")
-            //    || path.startsWith("/")
+                || path.startsWith("/")
                 || path.startsWith("/swagger-ui/")) {
 
             filterChain.doFilter(request, response);
@@ -46,7 +46,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
 
                 var autorizacao = new UsernamePasswordAuthenticationToken(
-                        usuario.getEmail(),
+                        usuario,
                         null,
                         usuario.getAuthorities());
 
@@ -60,7 +60,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus( HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token inválido");
         }
     }

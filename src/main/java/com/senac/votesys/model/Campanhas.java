@@ -30,7 +30,16 @@ public class Campanhas {
 
     private boolean ativo;
 
+    private boolean votacaoAnonima;
+
+    public String getTituloUpper(){
+        return this.titulo.toUpperCase();
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_votacao", nullable = false)
+    private TipoCampanha tipoCampanha;
+
     @OneToMany(mappedBy = "campanha", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OpcaoVoto> opcoesDeVoto = new ArrayList<>();
 }
-

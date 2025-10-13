@@ -35,6 +35,10 @@ public class SecutiryConfiguration {
                                         .requestMatchers("/campanhas/").permitAll()
                                         .requestMatchers("/opcaoVoto/").permitAll()
                                         .requestMatchers("/votos/").permitAll()
+                                        .requestMatchers("/votos_opcoes/").permitAll()
+
+
+
                                         .anyRequest().authenticated()
 
                 )

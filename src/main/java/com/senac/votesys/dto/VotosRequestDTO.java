@@ -1,6 +1,8 @@
 package com.senac.votesys.dto;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
-public record VotosRequestDTO (LocalDateTime dataHora){
-}
+public record VotosRequestDTO(
+        Long campanhaId,
+        List<Long> opcoesIds
+) {}

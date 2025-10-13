@@ -1,4 +1,4 @@
-package com.senac.votesys.services;
+package com.senac.votesys.service;
 
 import com.senac.votesys.dto.OpcaoVotoRequestDTO;
 import com.senac.votesys.dto.OpcaoVotoResponseDTO;
