@@ -2,12 +2,14 @@ package com.senac.votesys.application.service;
 
 import com.senac.votesys.application.dto.opcaoVoto.OpcaoVotoRequestDTO;
 import com.senac.votesys.application.dto.opcaoVoto.OpcaoVotoResponseDTO;
+import com.senac.votesys.application.dto.usuario.UsuarioPrincipalDTO;
 import com.senac.votesys.domain.entity.OpcaoVoto;
 import com.senac.votesys.domain.repository.CampanhasRepository;
 import com.senac.votesys.domain.repository.OpcaoVotoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.access.AccessDeniedException;
 import java.util.List;
 
 @Service
@@ -37,9 +39,18 @@ public class OpcaoVotoService {
                 .toList();
     }
 
-    public OpcaoVotoResponseDTO criarOpcaoVoto(OpcaoVotoRequestDTO dto) {
+    public OpcaoVotoResponseDTO criarOpcaoVoto(OpcaoVotoRequestDTO dto, UsuarioPrincipalDTO authentication) {
+
         var campanha = campanhasRepository.findById(dto.campanhaId())
                 .orElseThrow(() -> new RuntimeException("Campanha não encontrada"));
+
+        if (!authentication.isAdminGeral() &&
+                (campanha.getUsuario() == null || !campanha.getUsuario().getId().equals(authentication.id())))
+        {
+            // Se não é Admin Geral e (a campanha não tem dono ou o usuário logado NÃO é o dono)
+            throw new AccessDeniedException("Acesso negado: você não tem permissão para modificar esta campanha.");
+        }
+
 
         OpcaoVoto novaOpcao = new OpcaoVoto();
         novaOpcao.setNome(dto.nome());
@@ -50,12 +61,25 @@ public class OpcaoVotoService {
         return OpcaoVotoResponseDTO.fromEntity(opcaoSalva);
     }
 
-    public OpcaoVotoResponseDTO atualizarOpcaoVoto(long id, OpcaoVotoRequestDTO dto) {
+    public OpcaoVotoResponseDTO atualizarOpcaoVoto(long id, OpcaoVotoRequestDTO dto, UsuarioPrincipalDTO authentication) {
         var opcao = opcaoVotoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Opção de voto não encontrada"));
 
         var campanha = campanhasRepository.findById(dto.campanhaId())
                 .orElseThrow(() -> new RuntimeException("Campanha não encontrada"));
+
+        // Checagem de "dono" da campanha PAI (LÓGICA INLINE)
+        if (!authentication.isAdminGeral() &&
+                (campanha.getUsuario() == null || !campanha.getUsuario().getId().equals(authentication.id())))
+        {
+            // Se NÃO é Admin Geral E (a campanha não tem dono OU o usuário logado NÃO é o dono)
+            throw new AccessDeniedException("Acesso negado: você não tem permissão para modificar esta campanha.");
+        }
+
+        // Validação extra
+        if (!opcao.getCampanha().getId().equals(campanha.getId())) {
+            throw new RuntimeException("A opção de voto não pertence à campanha informada.");
+        }
 
         opcao.setNome(dto.nome());
         opcao.setCampanha(campanha);
@@ -64,10 +88,24 @@ public class OpcaoVotoService {
         return OpcaoVotoResponseDTO.fromEntity(opcaoAtualizada);
     }
 
-    public void excluirOpcaoVoto(long id) {
-        if (!opcaoVotoRepository.existsById(id)) {
-            throw new RuntimeException("Opção de voto não encontrada");
+    public void excluirOpcaoVoto(long id, UsuarioPrincipalDTO authentication) {
+        var opcao = opcaoVotoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Opção de voto não encontrada"));
+
+        // Pega a campanha "pai" da opção de voto
+        var campanha = opcao.getCampanha();
+
+        // Checagem de "dono" da campanha
+        if (!authentication.isAdminGeral() &&
+                (campanha.getUsuario() == null || !campanha.getUsuario().getId().equals(authentication.id())))
+        {
+            // Se NÃO é Admin Geral E (a campanha não tem dono OU o usuário logado NÃO é o dono)
+            throw new AccessDeniedException("Acesso negado: você não tem permissão para modificar esta campanha.");
         }
+
+
         opcaoVotoRepository.deleteById(id);
     }
+
+
 }

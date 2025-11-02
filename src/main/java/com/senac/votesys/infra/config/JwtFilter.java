@@ -1,5 +1,6 @@
 package com.senac.votesys.infra.config;
 
+import com.senac.votesys.application.dto.usuario.UsuarioPrincipalDTO;
 import com.senac.votesys.application.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,47 +21,50 @@ public class JwtFilter extends OncePerRequestFilter {
     private TokenService tokenService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String path = request.getRequestURI();
 
+        // URLs públicas
         if (path.equals("/auth/login")
-                || path.startsWith("/swagger-resources")    
+                || path.equals("/usuarios")
+                || path.startsWith("/usuarios/")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/auth/recuperarsenha")
+                || path.startsWith("/auth/alterarsenha")
+                || path.startsWith("/auth/resetarsenha")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/webjars")
-                || path.startsWith("/")
-                || path.startsWith("/swagger-ui/")) {
-
+                || path.startsWith("/swagger-ui")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String header = request.getHeader("Authorization");
-
         try {
+            String header = request.getHeader("Authorization");
             if (header != null && header.startsWith("Bearer ")) {
                 String token = header.replace("Bearer ", "");
-                var usuario = tokenService.validarToken(token);
 
+                // ✅ O TokenService já retorna UsuarioPrincipalDTO
+                UsuarioPrincipalDTO usuarioPrincipal = tokenService.validarToken(token);
 
-                var autorizacao = new UsernamePasswordAuthenticationToken(
-                        usuario,
+                // ✅ Injeta o principal correto no contexto de segurança
+                var autenticacao = new UsernamePasswordAuthenticationToken(
+                        usuarioPrincipal,
                         null,
-                        usuario.getAuthorities());
+                        usuarioPrincipal.autorizacao()
+                );
 
-                SecurityContextHolder.getContext().setAuthentication(autorizacao);
-
+                SecurityContextHolder.getContext().setAuthentication(autenticacao);
                 filterChain.doFilter(request, response);
-
             } else {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token inválido");
-                return;
+                response.getWriter().write("Token não informado");
             }
+
         } catch (Exception e) {
-            response.setStatus( HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token inválido");
         }
     }

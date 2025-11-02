@@ -32,6 +32,10 @@ public class Campanhas {
 
     private boolean votacaoAnonima;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_criador") // ou o nome da sua coluna de chave estrangeira
+    private Usuarios usuario;
+
     public String getTituloUpper(){
         return this.titulo.toUpperCase();
     }

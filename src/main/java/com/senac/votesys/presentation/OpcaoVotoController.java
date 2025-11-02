@@ -1,11 +1,13 @@
 package com.senac.votesys.presentation;
 
 import com.senac.votesys.application.dto.opcaoVoto.OpcaoVotoRequestDTO;
+import com.senac.votesys.application.dto.usuario.UsuarioPrincipalDTO;
 import com.senac.votesys.application.service.OpcaoVotoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -39,11 +41,15 @@ public class OpcaoVotoController {
         return ResponseEntity.ok(opcaoVotoService.listarPorCampanha(campanhaId));
     }
 
+
     @PostMapping
     @Operation(summary = "Criar Opção de Voto", description = "Cadastrar uma nova opção de voto")
-    public ResponseEntity<?> criarOpcaoVoto(@RequestBody OpcaoVotoRequestDTO dto) {
+    public ResponseEntity<?> criarOpcaoVoto(@RequestBody OpcaoVotoRequestDTO dto,
+                                            @AuthenticationPrincipal UsuarioPrincipalDTO authentication // ADICIONADO
+    ) {
         try {
-            var opcao = opcaoVotoService.criarOpcaoVoto(dto);
+
+            var opcao = opcaoVotoService.criarOpcaoVoto(dto, authentication);
             return ResponseEntity.ok(opcao);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -54,9 +60,13 @@ public class OpcaoVotoController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar Opção de Voto", description = "Atualizar dados de uma opção de voto existente")
-    public ResponseEntity<?> atualizarOpcaoVoto(@PathVariable long id, @RequestBody OpcaoVotoRequestDTO dto) {
+    public ResponseEntity<?> atualizarOpcaoVoto(@PathVariable long id,
+                                                @RequestBody OpcaoVotoRequestDTO dto,
+                                                @AuthenticationPrincipal UsuarioPrincipalDTO authentication // ADICIONADO
+    ) {
         try {
-            var opcao = opcaoVotoService.atualizarOpcaoVoto(id, dto);
+
+            var opcao = opcaoVotoService.atualizarOpcaoVoto(id, dto, authentication);
             return ResponseEntity.ok(opcao);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -67,9 +77,12 @@ public class OpcaoVotoController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Excluir Opção de Voto", description = "Excluir uma opção de voto")
-    public ResponseEntity<?> excluirOpcaoVoto(@PathVariable long id) {
+    public ResponseEntity<?> excluirOpcaoVoto(@PathVariable long id,
+                                              @AuthenticationPrincipal UsuarioPrincipalDTO authentication // ADICIONADO
+    ) {
         try {
-            opcaoVotoService.excluirOpcaoVoto(id);
+            // PASSANDO O USUÁRIO LOGADO PARA O SERVICE
+            opcaoVotoService.excluirOpcaoVoto(id, authentication);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

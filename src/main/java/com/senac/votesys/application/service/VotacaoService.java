@@ -39,6 +39,7 @@ public class VotacaoService {
 
         var opcoes = opcaoVotoRepository.findAllById(dto.opcoesIds());
         if (opcoes.isEmpty()) {
+
             return ResponseEntity.badRequest().body("Nenhuma opção válida selecionada.");
         }
 

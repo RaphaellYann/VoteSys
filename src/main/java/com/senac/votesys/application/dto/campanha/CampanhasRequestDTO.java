@@ -1,4 +1,4 @@
-package com.senac.votesys.application.dto.campanhas;
+package com.senac.votesys.application.dto.campanha;
 
 import com.senac.votesys.domain.entity.TipoCampanha;
 

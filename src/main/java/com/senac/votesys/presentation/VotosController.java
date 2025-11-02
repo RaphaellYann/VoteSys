@@ -22,6 +22,7 @@ public class VotosController {
     @Operation(summary = "Registrar voto", description = "Registra o voto do usuário logado em uma campanha")
     public ResponseEntity<?> registrarVoto(
             @AuthenticationPrincipal Usuarios usuario, //dto especido pra rule id e menus do usuario
+
             @RequestBody VotosRequestDTO dto) {
 
         return votacaoService.registrarVoto(dto, usuario);
@@ -29,6 +30,7 @@ public class VotosController {
 
     @GetMapping("/campanha/{campanhaId}")
     @Operation(summary = "Listar votos de uma campanha", description = "Lista todos os votos de uma campanha")
+
     public ResponseEntity<?> listarVotosPorCampanha(@PathVariable Long campanhaId) {
         return votacaoService.listarVotosPorCampanha(campanhaId);
     }
