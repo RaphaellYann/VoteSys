@@ -12,9 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,21 +31,13 @@ public class UsuariosService {
     private String frontendBaseUrl;
 
     public boolean validarSenha(LoginRequestDTO loginRequestDto) {
-
         var usuarioOptional = usuarioRepository.findByEmail(loginRequestDto.email());
 
-        if (usuarioOptional.isEmpty()) {
-            return false;
-        }
+        if (usuarioOptional.isEmpty()) return false;
 
         var usuario = usuarioOptional.get();
-
-        return passwordEncoder.matches(
-                loginRequestDto.senha(),
-                usuario.getPassword()
-        );
+        return passwordEncoder.matches(loginRequestDto.senha(), usuario.getSenha());
     }
-
 
     @Transactional
     public UsuarioResponseDTO consultarPorId(Long id) {
@@ -64,22 +54,44 @@ public class UsuariosService {
     }
 
     @Transactional
-    public UsuarioResponseDTO salvarUsuario(UsuarioRequestDTO usuarioRequest) {
-        var usuario = usuarioRepository.findByEmail(usuarioRequest.email()).map(u -> {
-                    u.setNome(usuarioRequest.nome());
-                    u.setEmail(usuarioRequest.email());
-                    u.setRole(usuarioRequest.role());
-                    u.setSenha(passwordEncoder.encode(usuarioRequest.senha()));
-                    return u;
-                })
-                .orElse(new Usuarios(usuarioRequest));
+    public UsuarioResponseDTO criarUsuario(UsuarioRequestDTO usuarioRequest) {
+        var usuarioExistente = usuarioRepository.findByEmail(usuarioRequest.email());
 
-        if (usuario.getId() == null) {
-            usuario.setSenha(passwordEncoder.encode(usuarioRequest.senha()));
+        if (usuarioExistente.isPresent()) {
+            throw new RuntimeException("E-mail já cadastrado. Use outro e-mail ou faça login.");
         }
 
-        usuarioRepository.save(usuario);
-        return usuario.toDtoResponse();
+        var novoUsuario = new Usuarios(usuarioRequest);
+        novoUsuario.setRole("ROLE_USER");
+        novoUsuario.setSenha(passwordEncoder.encode(usuarioRequest.senha()));
+
+        usuarioRepository.save(novoUsuario);
+
+        return novoUsuario.toDtoResponse();
+    }
+
+    @Transactional
+    public UsuarioResponseDTO salvarUsuario(Long id, UsuarioRequestDTO dto, UsuarioPrincipalDTO usuarioLogado) {
+
+        var usuarioParaAtualizar = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário com ID " + id + " não encontrado."));
+
+        // 2. Verifica se o novo email (do DTO) já está em uso por OUTRA pessoa
+        var emailExistente = usuarioRepository.findByEmail(dto.email());
+        if (emailExistente.isPresent() && !emailExistente.get().getId().equals(usuarioParaAtualizar.getId())) {
+            throw new RuntimeException("Este e-mail já está em uso por outra conta.");
+        }
+
+        usuarioParaAtualizar.setNome(dto.nome());
+        usuarioParaAtualizar.setEmail(dto.email());
+        usuarioParaAtualizar.setCpf(dto.cpf());
+
+        if (usuarioLogado.isAdminGeral()) {
+            usuarioParaAtualizar.setRole(dto.role());
+        }
+
+        usuarioRepository.save(usuarioParaAtualizar);
+        return usuarioParaAtualizar.toDtoResponse();
     }
 
     @Transactional
@@ -106,10 +118,8 @@ public class UsuariosService {
         var usuario = usuarioOptional.get();
 
         String token = UUID.randomUUID().toString();
-        LocalDateTime expiracao = LocalDateTime.now().plusDays(1);
-
         usuario.setTokenSenha(token);
-        usuario.setTokenSenhaExpiracao(expiracao);
+        usuario.setTokenSenhaExpiracao(LocalDateTime.now().plusDays(1));
         usuarioRepository.save(usuario);
 
         String link = frontendBaseUrl + "/resetarsenha?token=" + token;
@@ -137,7 +147,6 @@ public class UsuariosService {
             usuario.setTokenSenha(null);
             usuario.setTokenSenhaExpiracao(null);
             usuarioRepository.save(usuario);
-
             throw new RuntimeException("Token inválido ou expirado.");
         }
 
@@ -147,7 +156,6 @@ public class UsuariosService {
 
         usuarioRepository.save(usuario);
     }
-
 
     @Transactional
     public void alterarSenha(AlterarSenhaDTO alterarSenhaDTO) {
@@ -165,21 +173,6 @@ public class UsuariosService {
 
         usuario.setSenha(passwordEncoder.encode(alterarSenhaDTO.novaSenha()));
         usuarioRepository.save(usuario);
-    }
-
-    @Transactional
-    public UsuarioResponseDTO criarUsuario(UsuarioRequestDTO usuarioRequest) {
-        var usuarioExistente = usuarioRepository.findByEmail(usuarioRequest.email());
-
-        if (usuarioExistente.isPresent()) {
-            throw new RuntimeException("E-mail já cadastrado. Use outro e-mail ou faça login.");
-        }
-
-        var novoUsuario = new Usuarios(usuarioRequest);
-        novoUsuario.setSenha(passwordEncoder.encode(usuarioRequest.senha()));
-        usuarioRepository.save(novoUsuario);
-
-        return novoUsuario.toDtoResponse();
     }
 
     public UsuarioResponseDTO consultarPorEmail(String email) {

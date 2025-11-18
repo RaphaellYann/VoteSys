@@ -25,31 +25,33 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        String method = request.getMethod();
 
-        // URLs públicas
+        // URLs públicas (liberadas pelo SecurityConfiguration)
+        // O Spring Security lida com rotas permitAll() antes do filtro,
+        // mas é uma boa prática manter o /auth/login e o Swagger aqui.
         if (path.equals("/auth/login")
-                || path.equals("/usuarios")
-                || path.startsWith("/usuarios/")
-                || path.startsWith("/swagger-resources")
+                || (path.equals("/usuarios") && method.equals("POST")) // Permite POST /usuarios (cadastro)
                 || path.startsWith("/auth/recuperarsenha")
                 || path.startsWith("/auth/alterarsenha")
                 || path.startsWith("/auth/resetarsenha")
+                || path.startsWith("/swagger-resources")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/webjars")
                 || path.startsWith("/swagger-ui")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Para todas as outras rotas, prossiga com a validação do token
         try {
             String header = request.getHeader("Authorization");
             if (header != null && header.startsWith("Bearer ")) {
                 String token = header.replace("Bearer ", "");
 
-                // ✅ O TokenService já retorna UsuarioPrincipalDTO
                 UsuarioPrincipalDTO usuarioPrincipal = tokenService.validarToken(token);
 
-                // ✅ Injeta o principal correto no contexto de segurança
                 var autenticacao = new UsernamePasswordAuthenticationToken(
                         usuarioPrincipal,
                         null,

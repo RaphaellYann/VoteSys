@@ -1,8 +1,8 @@
 package com.senac.votesys.presentation;
 
+import com.senac.votesys.application.dto.usuario.UsuarioPrincipalDTO;
 import com.senac.votesys.application.dto.votos.VotosRequestDTO;
 import com.senac.votesys.application.service.VotacaoService;
-import com.senac.votesys.domain.entity.Usuarios;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,16 +21,14 @@ public class VotosController {
     @PostMapping
     @Operation(summary = "Registrar voto", description = "Registra o voto do usuário logado em uma campanha")
     public ResponseEntity<?> registrarVoto(
-            @AuthenticationPrincipal Usuarios usuario, //dto especido pra rule id e menus do usuario
-
+            @AuthenticationPrincipal UsuarioPrincipalDTO usuarioLogado, // <-- 2. MUDE AQUI
             @RequestBody VotosRequestDTO dto) {
 
-        return votacaoService.registrarVoto(dto, usuario);
+        return votacaoService.registrarVoto(dto, usuarioLogado); // <-- 3. AGORA OS TIPOS BATEM
     }
 
     @GetMapping("/campanha/{campanhaId}")
     @Operation(summary = "Listar votos de uma campanha", description = "Lista todos os votos de uma campanha")
-
     public ResponseEntity<?> listarVotosPorCampanha(@PathVariable Long campanhaId) {
         return votacaoService.listarVotosPorCampanha(campanhaId);
     }
