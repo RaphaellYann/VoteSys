@@ -3,16 +3,21 @@ package com.senac.votesys.application.service;
 import com.senac.votesys.application.dto.usuario.UsuarioPrincipalDTO;
 import com.senac.votesys.application.dto.votos.VotosRequestDTO;
 import com.senac.votesys.application.dto.votos.VotosResponseDTO;
+import com.senac.votesys.domain.entity.OpcaoVoto;
+import com.senac.votesys.domain.entity.TipoCampanha;
 import com.senac.votesys.domain.entity.Votos;
 import com.senac.votesys.domain.repository.CampanhasRepository;
 import com.senac.votesys.domain.repository.OpcaoVotoRepository;
 import com.senac.votesys.domain.repository.UsuariosRepository;
 import com.senac.votesys.domain.repository.VotosRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class VotacaoService {
@@ -27,67 +32,112 @@ public class VotacaoService {
     private OpcaoVotoRepository opcaoVotoRepository;
 
     @Autowired
-    private UsuariosRepository  usuariosRepository;
+    private UsuariosRepository usuariosRepository;
 
-    public ResponseEntity<?> registrarVoto(VotosRequestDTO dto, UsuarioPrincipalDTO usuarioLogado) {
+    @Transactional
+    public VotosResponseDTO registrarVoto(VotosRequestDTO dto, UsuarioPrincipalDTO usuarioLogado) {
 
         if (usuarioLogado == null) {
-            return ResponseEntity.status(401).body("Usuário não autenticado. Você deve estar logado para votar.");
+            throw new RuntimeException("Usuário não autenticado.");
         }
 
         var usuario = usuariosRepository.findById(usuarioLogado.id())
-                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado no banco de dados. ID: " + usuarioLogado.id()));
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado no banco."));
 
+        var campanha = campanhasRepository.findById(dto.campanhaId())
+                .orElseThrow(() -> new RuntimeException("Campanha não encontrada."));
 
-        var campanha = campanhasRepository.findById(dto.campanhaId()).orElse(null);
-        if (campanha == null) {
-            return ResponseEntity.notFound().build();
+        var opcoesDoBanco = opcaoVotoRepository.findAllById(dto.opcoesIds());
+        if (opcoesDoBanco.isEmpty()) {
+            throw new RuntimeException("Nenhuma opção válida selecionada.");
         }
 
-        var opcoes = opcaoVotoRepository.findAllById(dto.opcoesIds());
-        if (opcoes.isEmpty()) {
-            return ResponseEntity.badRequest().body("Nenhuma opção válida selecionada.");
-        }
+        Map<Long, OpcaoVoto> mapOpcoes = opcoesDoBanco.stream()
+                .collect(Collectors.toMap(OpcaoVoto::getId, Function.identity()));
+
+        List<OpcaoVoto> opcoesOrdenadas = dto.opcoesIds().stream()
+                .map(mapOpcoes::get)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+
+        boolean jaVotou = !votosRepository.findByUsuarioAndCampanha(usuario, campanha).isEmpty();
 
         switch (campanha.getTipoCampanha()) {
             case VOTO_UNICO -> {
-                if (!votosRepository.findByUsuarioAndCampanha(usuario, campanha).isEmpty()) {
-                    return ResponseEntity.badRequest().body("Usuário já votou nesta campanha.");
+                if (jaVotou) {
+                    throw new RuntimeException("Você já votou nesta campanha. Só é permitido um voto.");
+                }
+                if (opcoesOrdenadas.size() != 1) {
+                    throw new RuntimeException("Para Voto Único, selecione exatamente 1 opção.");
                 }
             }
-            case SELECAO_MULTIPLA -> {}
+
             case RANQUEADO -> {
-                if (opcoes.size() != campanha.getOpcoesDeVoto().size()) {
-                    return ResponseEntity.badRequest().body("Você deve ordenar todas as opções da campanha.");
+                if (jaVotou) {
+                    throw new RuntimeException("Você já enviou seu ranking. Não é possível votar novamente.");
+                }
+
+                if (opcoesOrdenadas.size() != campanha.getOpcoesDeVoto().size()) {
+                    throw new RuntimeException("Para votação Ranqueada, você deve ordenar todas as opções da campanha.");
                 }
             }
-            case VOTOS_MULTIPLOS -> {}
+
+            case SELECAO_MULTIPLA -> {
+                if (jaVotou) {
+                    throw new RuntimeException("Você já realizou sua seleção nesta campanha.");
+                }
+                if (opcoesOrdenadas.size() < 1) {
+                    throw new RuntimeException("Selecione pelo menos uma opção.");
+                }
+            }
+
+            case VOTOS_MULTIPLOS -> {
+                if (opcoesOrdenadas.size() != 1) {
+                    throw new RuntimeException("Em votos múltiplos, vote em uma opção por vez.");
+                }
+            }
         }
 
+        // Salva o Voto
         Votos voto = new Votos();
         voto.setUsuario(usuario);
         voto.setCampanha(campanha);
-        voto.setOpcoes(opcoes);
+        voto.setOpcoes(opcoesOrdenadas);
 
         Votos salvo = votosRepository.save(voto);
 
-        opcoes.forEach(op -> {
-            op.setTotalVotos(op.getTotalVotos() + 1);
-            opcaoVotoRepository.save(op);
-        });
+        // Contagem de Pontos e Atualização das Opções
+        int totalOpcoesNaCampanha = campanha.getOpcoesDeVoto().size();
 
-        return ResponseEntity.ok(VotosResponseDTO.fromEntity(salvo));
+        for (int i = 0; i < opcoesOrdenadas.size(); i++) {
+            OpcaoVoto opcao = opcoesOrdenadas.get(i);
+            int pontosParaAdicionar = 0;
+
+            if (campanha.getTipoCampanha() == TipoCampanha.RANQUEADO) {
+                // Lógica Método de Borda:
+                pontosParaAdicionar = (totalOpcoesNaCampanha - 1) - i;
+                if (pontosParaAdicionar < 0) pontosParaAdicionar = 0;
+
+            } else {
+                // Para outros tipos, 1 ponto simples por escolha
+                pontosParaAdicionar = 1;
+            }
+
+            opcao.setTotalVotos(opcao.getTotalVotos() + pontosParaAdicionar);
+            opcaoVotoRepository.save(opcao);
+        }
+
+        return VotosResponseDTO.fromEntity(salvo);
     }
 
-    public ResponseEntity<List<VotosResponseDTO>> listarVotosPorCampanha(Long campanhaId) {
-        var campanha = campanhasRepository.findById(campanhaId).orElse(null);
-        if (campanha == null) return ResponseEntity.notFound().build();
+    public List<VotosResponseDTO> listarVotosPorCampanha(Long campanhaId) {
+        var campanha = campanhasRepository.findById(campanhaId)
+                .orElseThrow(() -> new RuntimeException("Campanha não encontrada"));
 
         List<Votos> votos = votosRepository.findByCampanha(campanha);
-        List<VotosResponseDTO> dtoList = votos.stream()
-                .map(VotosResponseDTO::fromEntity)
-                .toList();
 
-        return ResponseEntity.ok(dtoList);
+        return votos.stream()
+                .map(VotosResponseDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 }

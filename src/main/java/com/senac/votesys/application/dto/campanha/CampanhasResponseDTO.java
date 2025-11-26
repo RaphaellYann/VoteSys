@@ -4,7 +4,6 @@ import com.senac.votesys.domain.entity.Campanhas;
 import com.senac.votesys.domain.entity.OpcaoVoto;
 import com.senac.votesys.domain.entity.TipoCampanha;
 
-
 import java.time.LocalDateTime;
 
 public record CampanhasResponseDTO(
@@ -14,11 +13,11 @@ public record CampanhasResponseDTO(
         LocalDateTime dataInicio,
         LocalDateTime dataFim,
         boolean ativo,
-        boolean votacaoAnonima,
         TipoCampanha tipoCampanha,
-        int totalVotos
+        int totalVotos,
+        boolean usuarioJaVotou
 ) {
-    public static CampanhasResponseDTO fromEntity(Campanhas campanha) {
+    public static CampanhasResponseDTO fromEntity(Campanhas campanha, boolean usuarioJaVotou) {
         int total = 0;
 
         if (campanha.getOpcoesDeVoto() != null) {
@@ -27,16 +26,17 @@ public record CampanhasResponseDTO(
                     .mapToInt(OpcaoVoto::getTotalVotos)
                     .sum();
         }
-        return new CampanhasResponseDTO( // remover e fazer igual professor usando this
+
+        return new CampanhasResponseDTO(
                 campanha.getId(),
                 campanha.getTitulo(),
                 campanha.getDescricao(),
                 campanha.getDataInicio(),
                 campanha.getDataFim(),
                 campanha.isAtivo(),
-                campanha.isVotacaoAnonima(),
                 campanha.getTipoCampanha(),
-                total
+                total,
+                usuarioJaVotou
         );
     }
 }

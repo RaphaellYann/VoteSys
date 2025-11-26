@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString; // <--- IMPORTANTE
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,10 +22,12 @@ public class Votos {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id")
-    private Usuarios usuario;  // <--- plural
+    @ToString.Exclude
+    private Usuarios usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campanha_id", nullable = false)
+    @ToString.Exclude
     private Campanhas campanha;
 
     @ManyToMany
@@ -33,6 +36,7 @@ public class Votos {
             joinColumns = @JoinColumn(name = "voto_id"),
             inverseJoinColumns = @JoinColumn(name = "opcao_id")
     )
+    @ToString.Exclude
     private List<OpcaoVoto> opcoes;
 
     private LocalDateTime dataVoto = LocalDateTime.now();

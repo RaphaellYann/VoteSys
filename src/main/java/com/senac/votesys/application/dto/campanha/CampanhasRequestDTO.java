@@ -7,9 +7,8 @@ import java.time.LocalDateTime;
 public record CampanhasRequestDTO(
         String titulo,
         String descricao,
-        LocalDateTime dataInicio,//ver se pode apgar
-        LocalDateTime dataFim,// ver se poder apagar
+        LocalDateTime dataInicio,
+        LocalDateTime dataFim,
         boolean ativo,
-        boolean votacaoAnonima,
         TipoCampanha tipoCampanha
 ) {}

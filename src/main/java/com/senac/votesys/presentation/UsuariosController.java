@@ -2,6 +2,7 @@ package com.senac.votesys.presentation;
 
 import com.senac.votesys.application.dto.usuario.UsuarioPrincipalDTO;
 import com.senac.votesys.application.dto.usuario.UsuarioRequestDTO;
+import com.senac.votesys.application.dto.usuario.UsuarioResponseDTO;
 import com.senac.votesys.application.service.UsuariosService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,26 +23,30 @@ public class UsuariosController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Consultar Usuário por ID", description = "Busca um usuário específico pelo ID")
-    public ResponseEntity<?> consultarPorId(
+    public ResponseEntity<UsuarioResponseDTO> consultarPorId(
             @PathVariable Long id,
             @AuthenticationPrincipal UsuarioPrincipalDTO usuarioLogado) {
 
+        // Mantendo sua lógica de segurança
         if (usuarioLogado == null) {
-            return ResponseEntity.status(401).body("Usuário não autenticado");
+            return ResponseEntity.status(401).build();
         }
 
         var usuario = usuariosService.consultarPorId(id);
+
+        // Padrão do professor: verifica null e retorna notFound
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
+
         return ResponseEntity.ok(usuario);
     }
 
     @GetMapping
     @Operation(summary = "Listar todos os usuários", description = "Retorna todos os usuários cadastrados")
-    public ResponseEntity<?> listarTodos(@AuthenticationPrincipal UsuarioPrincipalDTO usuarioLogado) {
+    public ResponseEntity<List<UsuarioResponseDTO>> listarTodos(@AuthenticationPrincipal UsuarioPrincipalDTO usuarioLogado) {
         if (usuarioLogado == null) {
-            return ResponseEntity.status(401).body("Usuário não autenticado");
+            return ResponseEntity.status(401).build();
         }
 
         var usuarios = usuariosService.consultarTodos();
@@ -50,37 +55,38 @@ public class UsuariosController {
 
     @PostMapping
     @Operation(summary = "Criar novo usuário", description = "Cadastra um novo usuário no sistema")
-    public ResponseEntity<?> criarUsuario(@RequestBody UsuarioRequestDTO usuarioRequestDTO) {
+    public ResponseEntity<UsuarioResponseDTO> criarUsuario(@RequestBody UsuarioRequestDTO usuarioRequestDTO) {
         try {
             var usuarioResponse = usuariosService.criarUsuario(usuarioRequestDTO);
             return ResponseEntity.ok(usuarioResponse);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // Padrão do professor: badRequest().build()
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar usuário", description = "Atualiza os dados de um usuário existente")
-    public ResponseEntity<?> atualizarUsuario(
+    public ResponseEntity<UsuarioResponseDTO> atualizarUsuario(
             @PathVariable Long id,
             @RequestBody UsuarioRequestDTO usuarioRequestDTO,
             @AuthenticationPrincipal UsuarioPrincipalDTO usuarioLogado) {
 
         if (usuarioLogado == null) {
-            return ResponseEntity.status(401).body("Usuário não autenticado");
+            return ResponseEntity.status(401).build();
         }
 
         // Usuário só pode editar a si mesmo, a menos que seja Admin Geral.
         if (!usuarioLogado.isAdminGeral() && !usuarioLogado.id().equals(id)) {
-            return ResponseEntity.status(403).body("Você não tem permissão para editar este usuário.");
+            return ResponseEntity.status(403).build();
         }
 
         try {
-            // Agora passa todos os argumentos necessários para o service
             var usuarioResponse = usuariosService.salvarUsuario(id, usuarioRequestDTO, usuarioLogado);
             return ResponseEntity.ok(usuarioResponse);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao atualizar usuário: " + e.getMessage());
+            // Padrão do professor: badRequest().build()
+            return ResponseEntity.badRequest().build();
         }
     }
 }

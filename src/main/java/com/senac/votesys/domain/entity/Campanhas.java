@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,8 +31,6 @@ public class Campanhas {
 
     private boolean ativo;
 
-    private boolean votacaoAnonima;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_criador") // ou o nome da sua coluna de chave estrangeira
     private Usuarios usuario;
@@ -45,5 +44,6 @@ public class Campanhas {
     private TipoCampanha tipoCampanha;
 
     @OneToMany(mappedBy = "campanha", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<OpcaoVoto> opcoesDeVoto = new ArrayList<>();
 }

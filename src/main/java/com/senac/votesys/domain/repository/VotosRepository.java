@@ -12,4 +12,6 @@ public interface VotosRepository extends JpaRepository<Votos, Long> {
     List<Votos> findByCampanha(Campanhas campanha);
 
     List<Votos> findByUsuarioAndCampanha(Usuarios usuario, Campanhas campanha);
+
+    boolean existsByUsuarioIdAndCampanhaId(Long usuarioId, Long campanhaId);
 }

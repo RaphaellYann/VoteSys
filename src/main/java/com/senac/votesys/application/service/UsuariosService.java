@@ -43,7 +43,7 @@ public class UsuariosService {
     public UsuarioResponseDTO consultarPorId(Long id) {
         return usuarioRepository.findById(id)
                 .map(UsuarioResponseDTO::new)
-                .orElse(null);
+                .orElse(null); // Retorna null para o controller tratar 404
     }
 
     public List<UsuarioResponseDTO> consultarTodos() {
@@ -76,7 +76,7 @@ public class UsuariosService {
         var usuarioParaAtualizar = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário com ID " + id + " não encontrado."));
 
-        // 2. Verifica se o novo email (do DTO) já está em uso por OUTRA pessoa
+        // Verifica se o novo email já está em uso por OUTRA pessoa
         var emailExistente = usuarioRepository.findByEmail(dto.email());
         if (emailExistente.isPresent() && !emailExistente.get().getId().equals(usuarioParaAtualizar.getId())) {
             throw new RuntimeException("Este e-mail já está em uso por outra conta.");

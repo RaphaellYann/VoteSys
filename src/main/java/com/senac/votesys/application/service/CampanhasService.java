@@ -7,9 +7,9 @@ import com.senac.votesys.domain.entity.Campanhas;
 import com.senac.votesys.domain.entity.Usuarios;
 import com.senac.votesys.domain.repository.CampanhasRepository;
 import com.senac.votesys.domain.repository.UsuariosRepository;
+import com.senac.votesys.domain.repository.VotosRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,137 +27,119 @@ public class CampanhasService {
     @Autowired
     private UsuariosRepository usuariosRepository;
 
-    public ResponseEntity<CampanhasResponseDTO> listarPorId(Long id, @AuthenticationPrincipal UsuarioPrincipalDTO authentication
-    ) {
+    @Autowired
+    private VotosRepository votosRepository;
+
+    public CampanhasResponseDTO listarPorId(Long id, UsuarioPrincipalDTO authentication) {
         Optional<Campanhas> campanhaOptional;
 
         if (authentication.isAdminGeral()) {
-            // ADMIN GERAL: busca qualquer campanha
             campanhaOptional = campanhasRepository.findById(id);
-
         } else if (authentication.isAdminNormal()) {
-            // ADMIN NORMAL: busca apenas campanhas dele
             campanhaOptional = campanhasRepository.findByIdAndUsuarioId(id, authentication.id());
         } else {
-
             campanhaOptional = Optional.empty();
         }
 
         return campanhaOptional
-                .map(campanha -> ResponseEntity.ok(CampanhasResponseDTO.fromEntity(campanha)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .map(c -> {
+                    boolean jaVotou = votosRepository.existsByUsuarioIdAndCampanhaId(authentication.id(), c.getId());
+                    return CampanhasResponseDTO.fromEntity(c, jaVotou);
+                })
+                .orElse(null);
     }
 
+    public List<CampanhasResponseDTO> listarCampanhasParaResultados(String filtro, UsuarioPrincipalDTO authentication) {
 
-    public ResponseEntity<List<CampanhasResponseDTO>> listarTodos(String filtro, UsuarioPrincipalDTO authentication) {
+        List<Campanhas> listaCampanhas = campanhasRepository.findAll();
+        return filtrarEMapear(listaCampanhas, filtro, authentication.id());
+    }
+
+    public List<CampanhasResponseDTO> listarCampanhasParaVotacao(String filtro, UsuarioPrincipalDTO authentication) {
+        LocalDateTime agora = LocalDateTime.now();
+        var lista = campanhasRepository.findByAtivoAndDataInicioBeforeAndDataFimAfter(true, agora, agora);
+        return filtrarEMapear(lista, filtro, authentication.id());
+    }
+
+    public List<CampanhasResponseDTO> listarTodos(String filtro, UsuarioPrincipalDTO authentication) {
         List<Campanhas> listaCampanhas;
 
-        if(authentication.isAdminGeral()){
-
+        if (authentication.isAdminGeral()) {
             listaCampanhas = campanhasRepository.findAll();
-
         } else if (authentication.isAdminNormal()) {
-
             listaCampanhas = campanhasRepository.findByUsuarioId(authentication.id());
         } else {
-
             listaCampanhas = List.of();
         }
 
-        var listaFiltrada = listaCampanhas.stream()
-                .sorted(Comparator.comparing(Campanhas::getTituloUpper))
-                .filter( a -> filtro == null || a.getTitulo().contains(filtro))
-                .map(CampanhasResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(listaFiltrada);
+        return filtrarEMapear(listaCampanhas, filtro, authentication.id());
     }
 
-    public ResponseEntity<?> criarCampanha(CampanhasRequestDTO dto, UsuarioPrincipalDTO authentication) {
+    @Transactional
+    public CampanhasResponseDTO criarCampanha(CampanhasRequestDTO dto, UsuarioPrincipalDTO authentication) {
 
-        if (!authentication.isAdminGeral() && !authentication.isAdminNormal()){
-
-            return ResponseEntity.status(403).body("Usuário sem permisão de criar campanhas");
+        if (!authentication.isAdminGeral() && !authentication.isAdminNormal()) {
+            throw new RuntimeException("Usuário sem permissão de criar campanhas");
         }
 
         Usuarios usuarioCriador = usuariosRepository.findById(authentication.id())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado.")
-                );
-        try {
-            var campanha = new Campanhas();
-            campanha.setTitulo(dto.titulo());
-            campanha.setDescricao(dto.descricao());
-            campanha.setDataInicio(dto.dataInicio());
-            campanha.setDataFim(dto.dataFim());
-            campanha.setAtivo(dto.ativo());
-            campanha.setVotacaoAnonima(dto.votacaoAnonima());
-            campanha.setTipoCampanha(dto.tipoCampanha());
-            campanha.setUsuario(usuarioCriador);
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-            var salvo = campanhasRepository.save(campanha);
+        var campanha = new Campanhas();
+        campanha.setTitulo(dto.titulo());
+        campanha.setDescricao(dto.descricao());
+        campanha.setDataInicio(dto.dataInicio());
+        campanha.setDataFim(dto.dataFim());
+        campanha.setAtivo(dto.ativo());
+        campanha.setTipoCampanha(dto.tipoCampanha());
+        campanha.setUsuario(usuarioCriador);
 
-            return ResponseEntity.ok(CampanhasResponseDTO.fromEntity(salvo));
-
-        } catch (Exception e) {
-
-            return ResponseEntity.badRequest().body("Erro ao criar campanha: " + e.getMessage());
-        }
+        var salvo = campanhasRepository.save(campanha);
+        // Retorna o DTO direto
+        return CampanhasResponseDTO.fromEntity(salvo, false);
     }
 
-    public ResponseEntity<?> atualizarCampanha(Long id, CampanhasRequestDTO dto, UsuarioPrincipalDTO authentication) {
+    @Transactional
+    public CampanhasResponseDTO atualizarCampanha(Long id, CampanhasRequestDTO dto, UsuarioPrincipalDTO authentication) {
         var campanha = campanhasRepository.findById(id).orElse(null);
 
         if (campanha == null) {
-
-            return ResponseEntity.notFound().build();
+            throw new RuntimeException("Campanha não encontrada");
         }
 
         if (!authentication.isAdminGeral() && !campanha.getUsuario().getId().equals(authentication.id())) {
-            // Se não for Admin Geral E não for o dono da campanha
-            return ResponseEntity.status(403).body("Você não tem permissão para editar esta campanha.");
+            throw new RuntimeException("Você não tem permissão para editar esta campanha.");
         }
 
+        campanha.setTitulo(dto.titulo());
+        campanha.setDescricao(dto.descricao());
+        campanha.setDataInicio(dto.dataInicio());
+        campanha.setDataFim(dto.dataFim());
+        campanha.setAtivo(dto.ativo());
+        campanha.setTipoCampanha(dto.tipoCampanha());
 
-        try {
-            campanha.setTitulo(dto.titulo());
-            campanha.setDescricao(dto.descricao());
-            campanha.setDataInicio(dto.dataInicio());
-            campanha.setDataFim(dto.dataFim());
-            campanha.setAtivo(dto.ativo());
-            campanha.setVotacaoAnonima(dto.votacaoAnonima());
-            campanha.setTipoCampanha(dto.tipoCampanha());
+        var atualizado = campanhasRepository.save(campanha);
+        boolean jaVotou = votosRepository.existsByUsuarioIdAndCampanhaId(authentication.id(), atualizado.getId());
 
-            var atualizado = campanhasRepository.save(campanha);
-            return ResponseEntity.ok(CampanhasResponseDTO.fromEntity(atualizado));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao atualizar campanha: " + e.getMessage());
-        }
+        return CampanhasResponseDTO.fromEntity(atualizado, jaVotou);
     }
 
-    public ResponseEntity<?> excluirCampanha(Long id) {
+    @Transactional
+    public void excluirCampanha(Long id) {
         if (!campanhasRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
+            throw new RuntimeException("Campanha não encontrada.");
         }
-
-        try {
-            campanhasRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao excluir campanha: " + e.getMessage());
-        }
+        campanhasRepository.deleteById(id);
     }
 
-    public ResponseEntity<List<CampanhasResponseDTO>> listarCampanhasParaVotacao(String filtro) { // <-- 1. ADICIONADO "filtro"
-        LocalDateTime agora = LocalDateTime.now();
-
-        var lista = campanhasRepository.findByAtivoAndDataInicioBeforeAndDataFimAfter(true, agora, agora)
-                .stream()
+    private List<CampanhasResponseDTO> filtrarEMapear(List<Campanhas> lista, String filtro, Long usuarioId) {
+        return lista.stream()
                 .sorted(Comparator.comparing(Campanhas::getTituloUpper))
-                .filter( a -> filtro == null || a.getTitulo().contains(filtro))
-                .map(CampanhasResponseDTO::fromEntity)
+                .filter(a -> filtro == null || a.getTitulo().contains(filtro))
+                .map(c -> {
+                    boolean jaVotou = votosRepository.existsByUsuarioIdAndCampanhaId(usuarioId, c.getId());
+                    return CampanhasResponseDTO.fromEntity(c, jaVotou);
+                })
                 .collect(Collectors.toList());
-
-        return ResponseEntity.ok(lista);
     }
 }
-
