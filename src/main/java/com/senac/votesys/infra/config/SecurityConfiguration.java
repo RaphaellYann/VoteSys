@@ -32,13 +32,11 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth
-                                // Rotas públicas (Swagger, Login, Cadastro)
+                               // .requestMatchers("/**").permitAll()
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
                                 .requestMatchers("/auth/login", "/auth/recuperarsenha", "/auth/resetarsenha").permitAll()
                                 .requestMatchers("/auth/login", "/auth/alterarsenha", "/auth/alterarsenha").permitAll()
-
-                                //  Esta é a única rota de /usuarios pública
                                 .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/usuarios", "/usuarios/**")

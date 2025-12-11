@@ -95,7 +95,7 @@ public class CampanhasService {
         campanha.setUsuario(usuarioCriador);
 
         var salvo = campanhasRepository.save(campanha);
-        // Retorna o DTO direto
+
         return CampanhasResponseDTO.fromEntity(salvo, false);
     }
 

@@ -27,11 +27,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // URLs públicas (liberadas pelo SecurityConfiguration)
-        // O Spring Security lida com rotas permitAll() antes do filtro,
-        // mas é uma boa prática manter o /auth/login e o Swagger aqui.
         if (path.equals("/auth/login")
-                || (path.equals("/usuarios") && method.equals("POST")) // Permite POST /usuarios (cadastro)
+                || (path.equals("/usuarios") && method.equals("POST"))
                 || path.startsWith("/auth/recuperarsenha")
                 || path.startsWith("/auth/alterarsenha")
                 || path.startsWith("/auth/resetarsenha")
@@ -39,12 +36,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/webjars")
                 || path.startsWith("/swagger-ui")) {
+              //|| path.startsWith("/")
 
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Para todas as outras rotas, prossiga com a validação do token
         try {
             String header = request.getHeader("Authorization");
             if (header != null && header.startsWith("Bearer ")) {
